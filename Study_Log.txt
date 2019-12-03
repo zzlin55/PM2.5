@@ -1,5 +1,0 @@
-Author: Clifford Zhan
-
-
-Date:16.10.2019
-Using push button as external interrupt to trigger LED.
