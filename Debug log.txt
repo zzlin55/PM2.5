@@ -1,0 +1,8 @@
+RTC Module:
+
+Problem description:
+    Completed I2C Setting from CUBEMX. Correctly set I2C pins. But no RTC data come from module.
+Debug process:
+    1. double check pinout. double check datasheet, make sure device address is correct. still fail.
+    2. modify my function, try to see if returned value is HAL_BUSY or HAL_ERROR. it returned "HAL_ERROR".
+    3. Look into source code, compare with I2C sample code, also did some google. Found that there is no GPIO setting for I2C even I set pinout correctly from CUBEMX.
