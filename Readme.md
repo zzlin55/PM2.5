@@ -6,6 +6,18 @@ This project is used to continuously monitor the air quality. Automatically reco
 
 Currently this project is still under developing. Any update will be posted here.
 
+Learning status:
+
+    GPIO        -Completed
+    Interrupt   -Completed
+    DMA         -Completed
+    Timers      -60% (Basic timer, systick timer completed)
+    I2C         -Completed
+    SPI         -Completed
+    ADC         -0%
+    DAC         -0%
+    FreeRTOS    -30% (Completed task related API)
+
 Project Schedule:
 
 Stage 1. individual module functionality testing
