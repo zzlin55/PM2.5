@@ -7,3 +7,5 @@ Debug process:
     2. modify my function, try to see if returned value is HAL_BUSY or HAL_ERROR. it returned "HAL_ERROR".
     3. Look into source code, compare with I2C sample code, also did some google. Found that there is no GPIO setting for I2C even I set pinout correctly from CUBEMX. Now manually add GPIO setting in MX_GPIO_Init. still return "HAL_ERROR".
     4. Create a new project with only I2C setting and UART2. Place GPIO setting into GPIO init then try. Return "HAL_ERROR". Place setting into I2C init function then try, return "HAL_ERROR".
+    5. Check RTC module voltage. 5V power supply, SDA and SCL are both around 1 V.
+    6. Googled, find it need to shift address to the left. modify "RTC_ADDR" to "RTC_ADDR<<1". Works!
