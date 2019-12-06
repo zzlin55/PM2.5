@@ -26,7 +26,7 @@ Stage 1. individual module functionality testing
 
     LED                 -Completed
 
-    External RTC (I2C)
+    External RTC (I2C)  -Completed
 
     TF card R/W (SPI)
 
@@ -46,3 +46,7 @@ Stage 5. Integration module by module.
 
 Stage 6. Full function testing.
 
+Change log:
+
+6.12.2019
+Update RTC module
