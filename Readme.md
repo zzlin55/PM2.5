@@ -50,3 +50,4 @@ Change log:
 
 6.12.2019
 Update RTC module
+Re-write RTC library so it works for STM32 and SD2405 RTC module.
