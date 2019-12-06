@@ -1,0 +1,7 @@
+rtc.c:22:9:DecToBcd	16	static
+rtc.c:27:9:BcdToDec	16	static
+rtc.c:35:19:ReadRTC	32	static
+rtc.c:66:6:GetRawRTC	32	static
+rtc.c:100:6:WriteRTC	48	static
+rtc.c:146:6:WriteRTCEnable	32	static
+rtc.c:165:6:WriteRTCDisable	32	static
