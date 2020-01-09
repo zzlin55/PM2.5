@@ -9,3 +9,12 @@ Debug process:
     4. Create a new project with only I2C setting and UART2. Place GPIO setting into GPIO init then try. Return "HAL_ERROR". Place setting into I2C init function then try, return "HAL_ERROR".
     5. Check RTC module voltage. 5V power supply, SDA and SCL are both around 1 V.
     6. Googled, find it need to shift address to the left. modify "RTC_ADDR" to "RTC_ADDR<<1". Works!
+
+
+PM2.5 Module and LCD running on RTOS:
+
+Problem:
+    pm2.5 module and LCD works fine for general program. Try to convert it to FreeRTOS. But hardfault handler was called when writing command to LCD. Problem was found when Write the second GPIO. the PORT number is 8, pin number 8192, write-value is 0.
+Debug:
+    Try to run on "golden" program (non-RTOS one) to see if port number and pin number are different.
+    
