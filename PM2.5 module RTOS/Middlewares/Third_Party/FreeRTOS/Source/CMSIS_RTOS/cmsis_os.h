@@ -26,7 +26,7 @@
  *  
  *----------------------------------------------------------------------------
  *
- * Portions Copyright © 2016 STMicroelectronics International N.V. All rights reserved.
+ * Portions Copyright ï¿½ 2016 STMicroelectronics International N.V. All rights reserved.
  * Portions Copyright (c) 2013 ARM LIMITED
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
@@ -843,6 +843,13 @@ osMessageQId osMessageCreate (const osMessageQDef_t *queue_def, osThreadId threa
 /// \return status code that indicates the execution status of the function.
 /// \note MUST REMAIN UNCHANGED: \b osMessagePut shall be consistent in every CMSIS-RTOS.
 osStatus osMessagePut (osMessageQId queue_id, uint32_t info, uint32_t millisec);
+
+/// Overwrite a Message to a Queue.
+/// \param[in]     queue_id      message queue ID obtained with \ref osMessageCreate.
+/// \param[in]     info          message information.
+/// \return status code that indicates the execution status of the function.
+/// \note User-defined function. not standard.
+osStatus osMessageOverwrite (osMessageQId queue_id, uint32_t info);
 
 /// Get a Message or Wait for a Message from a Queue.
 /// \param[in]     queue_id      message queue ID obtained with \ref osMessageCreate.

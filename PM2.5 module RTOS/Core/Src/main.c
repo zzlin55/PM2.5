@@ -564,12 +564,12 @@ void LCDtask1(void const * argument)
   /* Infinite loop */
   for(;;)
   {
-	  PMevt = osMessageGet(PMvalueHandle,osWaitForever);
+	  PMevt = osMessagePeek(PMvalueHandle,osWaitForever);
 	  if (PMevt.status == osEventMessage)
 	  {
 		  PM2_5 = PMevt.value.v;
 		  printf("The current PM2.5 is : %d \r\n", PM2_5);
-
+		  Lcd_clear(&lcd);
 		  Lcd_cursor(&lcd,0,0);
 		  Lcd_string(&lcd, "PM2.5 is:");
 		  Lcd_cursor(&lcd,0,10);
@@ -600,12 +600,16 @@ void PM2_5_1(void const * argument)
 	  if (RxReady==SET)
 	  {
 		  RxReady = RESET;
-		  HAL_UART_Receive_IT(&huart6, pmflag, 32);
+		  HAL_UART_Receive_IT(&huart6, pmflag, 32); //Read data from PM2.5 module, fixed packet length is 32 bytes.
 		  HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_5);
-		  if(pmflag[0]==0x42)
+		  if(pmflag[0]==0x42) //The correct data start with 0x42.
 		  {
 			  PM2_5 = transmitPM2_5(pmflag);
-			  osMessagePut(PMvalueHandle,PM2_5,1);
+			  if(PMchecksum(pmflag,32)==0)
+			  {
+				  osMessageOverwrite(PMvalueHandle,PM2_5); //Since CMSIS-RTOS library does not have such function. This is user defined function
+				  //printf("Get PM2.5 value\r\n");
+			  }
 		  }
 	  }
 	  osDelay(500);

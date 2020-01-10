@@ -109,6 +109,7 @@ void Lcd_mode_select(Lcd_HandleTypeDef * lcd);
 void Lcd_int(Lcd_HandleTypeDef * lcd, int number);
 void Lcd_string(Lcd_HandleTypeDef * lcd, char * string);
 void Lcd_cursor(Lcd_HandleTypeDef * lcd, uint8_t row, uint8_t col);
+void Lcd_clear(Lcd_HandleTypeDef * lcd);
 Lcd_HandleTypeDef Lcd_create(
 		Lcd_PortType port[], Lcd_PinType pin[],
 		Lcd_PortType rs_port, Lcd_PinType rs_pin,

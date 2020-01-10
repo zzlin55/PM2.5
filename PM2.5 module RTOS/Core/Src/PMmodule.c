@@ -1,12 +1,14 @@
 #include "PMmodule.h"
-
+/*
+ * @brief	return 1 if checksum error. return 0 if correct.
+ */
 uint8_t PMchecksum(uint8_t *buf,uint8_t buflen)
 {
 	//uint8_t buflen = strlen(buf);
 	uint8_t rxerror = 1;
 	uint16_t checksum = 0;
 	uint8_t i;
-	for (i=0;i<buflen;i++){
+	for (i=0;i<(buflen-2);i++){
 		checksum = checksum+buf[i];
 	}
 	if (buflen ==31){
@@ -15,11 +17,6 @@ uint8_t PMchecksum(uint8_t *buf,uint8_t buflen)
 	if (checksum==((buf[buflen-2]<<8)+buf[buflen-1]))
 	{
 		rxerror = 0;
-		return rxerror;
-	}
-	else
-	{
-		printf("PM serial reading Checksum Error");
 		return rxerror;
 	}
 	return rxerror;
