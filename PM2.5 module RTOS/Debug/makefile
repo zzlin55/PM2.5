@@ -36,6 +36,9 @@ default.size.stdout \
 OBJDUMP_LIST += \
 PM2.5\ module\ RTOS.list \
 
+OBJCOPY_BIN += \
+PM2.5\ module\ RTOS.bin \
+
 
 # All Target
 all: PM2.5\ module\ RTOS.elf secondary-outputs
@@ -56,12 +59,17 @@ PM2.5\ module\ RTOS.list: $(EXECUTABLES)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+PM2.5\ module\ RTOS.bin: $(EXECUTABLES)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "PM2.5 module RTOS.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
 	-$(RM) *
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_BIN)
 
 .PHONY: all clean dependents
 .SECONDARY:

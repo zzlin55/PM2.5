@@ -27,6 +27,8 @@
 #include "PMmodule.h"
 #include "retarget.h"
 #include "lcd.h"
+#include "rtc.h"
+//#include "CMSIS-USERDEF.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,7 +60,9 @@ DMA_HandleTypeDef hdma_usart6_rx;
 osThreadId defaultTaskHandle;
 osThreadId LCDtaskHandle;
 osThreadId PM2_5Handle;
+osThreadId RTCreadHandle;
 osMessageQId PMvalueHandle;
+osMessageQId RTCvalueHandle;
 /* USER CODE BEGIN PV */
 
 /* USER CODE END PV */
@@ -75,6 +79,7 @@ static void MX_DMA_Init(void);
 void StartDefaultTask(void const * argument);
 void LCDtask1(void const * argument);
 void PM2_5_1(void const * argument);
+void RTC_1(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
@@ -86,7 +91,7 @@ uint8_t pmbuff[BUFFSIZE];
 uint8_t pmflag[32];
 uint8_t RxReady = SET;
 static Lcd_HandleTypeDef lcd;
-
+//static uint16_t RTCvalue[6];
 
 /* USER CODE END 0 */
 
@@ -154,8 +159,14 @@ int main(void)
   osMessageQDef(PMvalue, 1, uint8_t);
   PMvalueHandle = osMessageCreate(osMessageQ(PMvalue), NULL);
 
+  /* definition and creation of RTCvalue */
+  //osMessageQDef(RTCvalue, 1, uint16_t*);
+  //RTCvalueHandle = osMessageCreate(osMessageQ(RTCvalue), NULL);
+
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
+  osMailQDef(RTCvalue,1,rtc_HandleTypeDef);
+  RTCvalueHandle = osMailCreate(osMailQ(RTCvalue),NULL);
   /* USER CODE END RTOS_QUEUES */
 
   /* Create the thread(s) */
@@ -164,12 +175,16 @@ int main(void)
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of LCDtask */
-  osThreadDef(LCDtask, LCDtask1, osPriorityIdle, 0, 128);
+  osThreadDef(LCDtask, LCDtask1, osPriorityIdle, 0, 512);
   LCDtaskHandle = osThreadCreate(osThread(LCDtask), NULL);
 
   /* definition and creation of PM2_5 */
   osThreadDef(PM2_5, PM2_5_1, osPriorityIdle, 0, 128);
   PM2_5Handle = osThreadCreate(osThread(PM2_5), NULL);
+
+  /* definition and creation of RTCread */
+  osThreadDef(RTCread, RTC_1, osPriorityIdle, 0, 128);
+  RTCreadHandle = osThreadCreate(osThread(RTCread), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -177,7 +192,7 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
-  
+ 
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -550,17 +565,18 @@ void StartDefaultTask(void const * argument)
 /* USER CODE END Header_LCDtask1 */
 void LCDtask1(void const * argument)
 {
-
   /* USER CODE BEGIN LCDtask1 */
 		uint8_t PM2_5;
+		//uint16_t RTCreceive[6];
+		//uint16_t *RTCptr;
+		osEvent RTCevt;
 		osEvent PMevt;
-		/*
-		Lcd_HandleTypeDef lcd;
-		Lcd_PortType ports[] = {D4_GPIO_Port, D5_GPIO_Port, D6_GPIO_Port, D7_GPIO_Port};
-		Lcd_PinType pins[] = {D4_Pin, D5_Pin, D6_Pin, D7_Pin};
-		HAL_GPIO_WritePin(BL_GPIO_Port, BL_Pin, GPIO_PIN_SET);
-		lcd = Lcd_create(ports, pins, RS_GPIO_Port, RS_Pin, EN_GPIO_Port, EN_Pin, LCD_4_BIT_MODE);
-		 */
+		rtc_HandleTypeDef *rtc_receive;
+		uint8_t Months[12][4] = {"Jan\0", "Feb\0", "Mar\0", "Apr\0", "May\0",
+				"Jun\0", "Jul\0", "Aug\0", "Sep\0", "Oct\0", "Nov\0", "Dec\0"};
+		char date[16];
+		char PMtext[16];
+		Lcd_clear(&lcd);
   /* Infinite loop */
   for(;;)
   {
@@ -569,13 +585,25 @@ void LCDtask1(void const * argument)
 	  {
 		  PM2_5 = PMevt.value.v;
 		  printf("The current PM2.5 is : %d \r\n", PM2_5);
-		  Lcd_clear(&lcd);
-		  Lcd_cursor(&lcd,0,0);
-		  Lcd_string(&lcd, "PM2.5 is:");
-		  Lcd_cursor(&lcd,0,10);
-		  Lcd_int(&lcd,PM2_5);
-
+		  //Lcd_clear(&lcd);
+		  sprintf(PMtext,"PM2.5: %02d ug/m3",PM2_5);
+		  Lcd_cursor(&lcd,1,0);
+		  Lcd_string(&lcd, PMtext);
 	  }
+
+	  RTCevt = osMailGet(RTCvalueHandle,osWaitForever);
+	  if(RTCevt.status == osEventMail)
+	  {
+		  rtc_receive =  (rtc_HandleTypeDef*) RTCevt.value.p;
+		  printf("year: %d\r\n",rtc_receive->year);
+		  printf("day: %d \r\n",rtc_receive->day);
+		  sprintf(date,"%s-%02d %02d:%02d:%02d",Months[(rtc_receive->month)-1],rtc_receive->day,rtc_receive->hour,rtc_receive->minute,rtc_receive->second);
+		  //Lcd_string(&lcd,Months[(rtc_receive->month)-1]);
+		  Lcd_cursor(&lcd,0,0);
+		  Lcd_string(&lcd,date);
+		  osMailFree(RTCvalueHandle, rtc_receive);
+	  }
+
 
 	  osDelay(1000);
   }
@@ -612,10 +640,44 @@ void PM2_5_1(void const * argument)
 			  }
 		  }
 	  }
+	  //test only
 	  osDelay(500);
   }
   osThreadTerminate(NULL);
   /* USER CODE END PM2_5_1 */
+}
+
+/* USER CODE BEGIN Header_RTC_1 */
+/**
+* @brief Function implementing the RTCread thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_RTC_1 */
+void RTC_1(void const * argument)
+{
+  /* USER CODE BEGIN RTC_1 */
+	rtc_HandleTypeDef *rtc_t;
+	rtc_t = (rtc_HandleTypeDef*) osMailAlloc(RTCvalueHandle,osWaitForever);
+  /* Infinite loop */
+  for(;;)
+  {
+	  //uint16_t RTCsend[6];
+	  *rtc_t = ReadRTC();
+	  /*
+	  RTCsend[0] = rtc_t.year;
+	  RTCsend[1] = rtc_t.month;
+	  RTCsend[2] = rtc_t.day;
+	  RTCsend[3] = rtc_t.hour;
+	  RTCsend[4] = rtc_t.minute;
+	  RTCsend[5] = rtc_t.second;
+	  osMessageOverwrite(RTCvalueHandle,*RTCsend);
+	  */
+	  //xQueueOverwrite(RTCqueue,(void*)&rtc_t);
+	  osMailPut(RTCvalueHandle,rtc_t);
+  	  osDelay(1000);
+  }
+  /* USER CODE END RTC_1 */
 }
 
 /**

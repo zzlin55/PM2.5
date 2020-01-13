@@ -1135,18 +1135,9 @@ osStatus osMessagePut (osMessageQId queue_id, uint32_t info, uint32_t millisec)
   return osOK;
 }
 
-/**
-* @brief  Overwrite a Message to a Queue.
-* @param  queue_id  message queue ID obtained with \ref osMessageCreate.
-* @param  info      message information.
-* @param  millisec  timeout value or 0 in case of no time-out.
-* @retval status code that indicates the execution status of the function.
-* @note   This is a !!!!!user-defined!!!!! function. Must be used for length-one queue only.
-*/
 osStatus osMessageOverwrite (osMessageQId queue_id, uint32_t info)
 {
   portBASE_TYPE taskWoken = pdFALSE;
-
 
   if (inHandlerMode()) {
     if (xQueueOverwriteFromISR(queue_id, &info, &taskWoken) != pdTRUE) {
