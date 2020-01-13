@@ -576,10 +576,11 @@ void LCDtask1(void const * argument)
 				"Jun\0", "Jul\0", "Aug\0", "Sep\0", "Oct\0", "Nov\0", "Dec\0"};
 		char date[16];
 		char PMtext[16];
-		Lcd_clear(&lcd);
+		uint8_t LCD_clearflag = 1;
   /* Infinite loop */
   for(;;)
   {
+
 	  PMevt = osMessagePeek(PMvalueHandle,osWaitForever);
 	  if (PMevt.status == osEventMessage)
 	  {
@@ -587,6 +588,10 @@ void LCDtask1(void const * argument)
 		  printf("The current PM2.5 is : %d \r\n", PM2_5);
 		  //Lcd_clear(&lcd);
 		  sprintf(PMtext,"PM2.5: %02d ug/m3",PM2_5);
+		  if (LCD_clearflag ==1){
+		  		  Lcd_clear(&lcd);
+		  		  LCD_clearflag = 0;
+		  }
 		  Lcd_cursor(&lcd,1,0);
 		  Lcd_string(&lcd, PMtext);
 	  }
@@ -603,9 +608,7 @@ void LCDtask1(void const * argument)
 		  Lcd_string(&lcd,date);
 		  osMailFree(RTCvalueHandle, rtc_receive);
 	  }
-
-
-	  osDelay(1000);
+	  osDelay(100);
   }
   osThreadTerminate(NULL);
   /* USER CODE END LCDtask1 */
@@ -641,7 +644,7 @@ void PM2_5_1(void const * argument)
 		  }
 	  }
 	  //test only
-	  osDelay(500);
+	  osDelay(1000);
   }
   osThreadTerminate(NULL);
   /* USER CODE END PM2_5_1 */
@@ -675,7 +678,7 @@ void RTC_1(void const * argument)
 	  */
 	  //xQueueOverwrite(RTCqueue,(void*)&rtc_t);
 	  osMailPut(RTCvalueHandle,rtc_t);
-  	  osDelay(1000);
+  	  osDelay(100);
   }
   /* USER CODE END RTC_1 */
 }
