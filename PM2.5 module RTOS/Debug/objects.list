@@ -1,3 +1,4 @@
+"Core/Src/LED.o"
 "Core/Src/PMmodule.o"
 "Core/Src/freertos.o"
 "Core/Src/lcd.o"

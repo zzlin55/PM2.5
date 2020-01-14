@@ -42,7 +42,10 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define BUFFSIZE 32
+#define BUFFSIZE	32
+#define GOODAIR			0	//Little to no risk.
+#define MODERATEAIR		12	//Unusually sensitive individuals may experience respiratory symptoms.
+#define	UNHEALTHYAIR	35.4 //Increasing likelihood of respiratory symptoms in sensitive individuals, aggravation of heart or lung disease and premature mortality in persons with cardiopulmonary disease and the elderly.
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -64,7 +67,8 @@ osThreadId RTCreadHandle;
 osMessageQId PMvalueHandle;
 osMessageQId RTCvalueHandle;
 /* USER CODE BEGIN PV */
-
+osThreadId LEDtaskHandle;
+osThreadId LEDinitHandle;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -82,7 +86,8 @@ void PM2_5_1(void const * argument);
 void RTC_1(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+void LEDtask1(void const * argument);
+void LEDinit1(void const * argument);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -160,8 +165,6 @@ int main(void)
   PMvalueHandle = osMessageCreate(osMessageQ(PMvalue), NULL);
 
   /* definition and creation of RTCvalue */
-  //osMessageQDef(RTCvalue, 1, uint16_t*);
-  //RTCvalueHandle = osMessageCreate(osMessageQ(RTCvalue), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -171,23 +174,30 @@ int main(void)
 
   /* Create the thread(s) */
   /* definition and creation of defaultTask */
-  osThreadDef(defaultTask, StartDefaultTask, osPriorityNormal, 0, 128);
+  osThreadDef(defaultTask, StartDefaultTask, osPriorityIdle, 0, 128);
   defaultTaskHandle = osThreadCreate(osThread(defaultTask), NULL);
 
   /* definition and creation of LCDtask */
-  osThreadDef(LCDtask, LCDtask1, osPriorityIdle, 0, 512);
+  osThreadDef(LCDtask, LCDtask1, osPriorityNormal, 0, 512);
   LCDtaskHandle = osThreadCreate(osThread(LCDtask), NULL);
 
   /* definition and creation of PM2_5 */
-  osThreadDef(PM2_5, PM2_5_1, osPriorityIdle, 0, 128);
+  osThreadDef(PM2_5, PM2_5_1, osPriorityNormal, 0, 128);
   PM2_5Handle = osThreadCreate(osThread(PM2_5), NULL);
 
   /* definition and creation of RTCread */
-  osThreadDef(RTCread, RTC_1, osPriorityIdle, 0, 128);
+  osThreadDef(RTCread, RTC_1, osPriorityNormal, 0, 128);
   RTCreadHandle = osThreadCreate(osThread(RTCread), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
+  /* definition and creation of LEDtask */
+  osThreadDef(LEDtask, LEDtask1, osPriorityNormal, 0, 128);
+  LEDtaskHandle = osThreadCreate(osThread(LEDtask), NULL);
+
+  osThreadDef(LEDinit, LEDinit1, osPriorityHigh, 0, 128);
+  LEDinitHandle = osThreadCreate(osThread(LEDinit), NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -536,6 +546,66 @@ static void MX_GPIO_Init(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle){
 	RxReady = SET;
 }
+void LEDinit1(void const * argument)
+{
+	uint8_t i = 0;
+	osThreadSuspend(LCDtaskHandle);
+	osThreadSuspend(PM2_5Handle);
+	osThreadSuspend(RTCreadHandle);
+	osThreadSuspend(LEDtaskHandle);
+
+	for(i=0;i<6;i++)
+	{
+		HAL_GPIO_TogglePin(LED_Green_GPIO_Port, LED_Green_Pin);
+		HAL_GPIO_TogglePin(LED_Yellow_GPIO_Port, LED_Yellow_Pin);
+		HAL_GPIO_TogglePin(LED_Red_GPIO_Port, LED_Red_Pin);
+		osDelay(100);
+	}
+
+	HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LED_Yellow_GPIO_Port, LED_Yellow_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
+
+	osThreadResume(LCDtaskHandle);
+	osThreadResume(PM2_5Handle);
+	osThreadResume(RTCreadHandle);
+	osThreadResume(LEDtaskHandle);
+
+	osThreadTerminate(NULL);
+}
+void LEDtask1(void const * argument)
+{
+	uint8_t PM2_5;
+	osEvent PMevt;
+	while(1)
+	{
+		PMevt = osMessagePeek(PMvalueHandle,osWaitForever);
+		if (PMevt.status == osEventMessage)
+		{
+		  PM2_5 = PMevt.value.v;
+		  if (PM2_5<MODERATEAIR)
+		  {
+			  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_SET);
+			  HAL_GPIO_WritePin(LED_Yellow_GPIO_Port, LED_Yellow_Pin, GPIO_PIN_RESET);
+			  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
+		  }
+		  else if((PM2_5<UNHEALTHYAIR) && (PM2_5>MODERATEAIR))
+		  {
+			  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_RESET);
+			  HAL_GPIO_WritePin(LED_Yellow_GPIO_Port, LED_Yellow_Pin, GPIO_PIN_SET);
+			  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_RESET);
+		  }
+		  else
+		  {
+			  HAL_GPIO_WritePin(LED_Green_GPIO_Port, LED_Green_Pin, GPIO_PIN_RESET);
+			  HAL_GPIO_WritePin(LED_Yellow_GPIO_Port, LED_Yellow_Pin, GPIO_PIN_RESET);
+			  HAL_GPIO_WritePin(LED_Red_GPIO_Port, LED_Red_Pin, GPIO_PIN_SET);
+		  }
+		}
+	osDelay(500);
+	}
+	osThreadTerminate(NULL);
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -644,7 +714,7 @@ void PM2_5_1(void const * argument)
 		  }
 	  }
 	  //test only
-	  osDelay(1000);
+	  osDelay(100);
   }
   osThreadTerminate(NULL);
   /* USER CODE END PM2_5_1 */
@@ -667,16 +737,6 @@ void RTC_1(void const * argument)
   {
 	  //uint16_t RTCsend[6];
 	  *rtc_t = ReadRTC();
-	  /*
-	  RTCsend[0] = rtc_t.year;
-	  RTCsend[1] = rtc_t.month;
-	  RTCsend[2] = rtc_t.day;
-	  RTCsend[3] = rtc_t.hour;
-	  RTCsend[4] = rtc_t.minute;
-	  RTCsend[5] = rtc_t.second;
-	  osMessageOverwrite(RTCvalueHandle,*RTCsend);
-	  */
-	  //xQueueOverwrite(RTCqueue,(void*)&rtc_t);
 	  osMailPut(RTCvalueHandle,rtc_t);
   	  osDelay(100);
   }
